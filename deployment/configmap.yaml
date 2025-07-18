@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neodash-config
+data:
+  config.json: |
+    {
+      "ssoEnabled": false,
+      "ssoProviders": [],
+      "ssoDiscoveryUrl": "https://example.com",
+      "standalone": false,
+      "standaloneProtocol": "neo4j+s",
+      "standaloneHost": "neo4j-service",
+      "standalonePort": 7687,
+      "standaloneDatabase": "neo4j",
+      "standaloneUsername": "",
+      "standalonePassword": "",
+      "standaloneDashboardName": "My Dashboard",
+      "standaloneDashboardDatabase": "neo4j",
+      "standaloneDashboardURL": "",
+      "standaloneAllowLoad": false,
+      "standaloneLoadFromOtherDatabases": false,
+      "standaloneMultiDatabase": false,
+      "standaloneDatabaseList": "neo4j",
+      "standalonePasswordWarningHidden": false,
+      "loggingMode": "0",
+      "loggingDatabase": "logs",
+      "customHeader": ""
+    }
+  style.config.json: |
+    {
+      "DASHBOARD_HEADER_BRAND_LOGO": "",
+      "DASHBOARD_HEADER_COLOR": "",
+      "DASHBOARD_HEADER_BUTTON_COLOR": "",
+      "DASHBOARD_HEADER_TITLE_COLOR": "",
+      "DASHBOARD_PAGE_LIST_COLOR": "",
+      "DASHBOARD_PAGE_LIST_ACTIVE_COLOR": "",
+      "style": {
+        "--palette-light-neutral-bg-weak": ""
+      }
+    }
