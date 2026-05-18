@@ -1,0 +1,62 @@
+# Stage 1: Prepare OpenShift-specific files
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5 AS prepare
+
+RUN mkdir -p /tmp/config /tmp/scripts && \
+    echo "{}" > /tmp/config/config.json && \
+    echo "{}" > /tmp/config/style.config.json
+
+COPY scripts/openshift-entrypoint.sh /tmp/scripts/openshift-entrypoint.sh
+RUN chmod +x /tmp/scripts/openshift-entrypoint.sh
+
+# Stage 2: Pull NeoDash static assets from the official image
+FROM neo4jlabs/neodash:latest AS neodash-assets
+
+# Stage 3: Final UBI9-based runtime image
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
+
+USER root
+
+RUN microdnf -y update && \
+    microdnf -y install nginx curl gettext && \
+    microdnf clean all
+
+# Copy NeoDash web app assets and nginx template helpers from upstream image
+COPY --from=neodash-assets /usr/share/nginx/html /usr/share/nginx/html
+COPY --from=neodash-assets /etc/nginx/templates /etc/nginx/templates
+COPY --from=neodash-assets /docker-entrypoint.d /docker-entrypoint.d
+
+# Override config placeholders and custom OpenShift entrypoint
+COPY --from=prepare /tmp/config/config.json /usr/share/nginx/html/config.json
+COPY --from=prepare /tmp/config/style.config.json /usr/share/nginx/html/style.config.json
+COPY --from=prepare /tmp/scripts/openshift-entrypoint.sh /openshift-entrypoint.sh
+
+# OpenShift random UID compatibility
+RUN chgrp -R 0 /usr/share/nginx/html && \
+    chmod -R g=u /usr/share/nginx/html && \
+    chgrp -R 0 /var/cache/nginx && \
+    chmod -R g=u /var/cache/nginx && \
+    chgrp -R 0 /var/log/nginx && \
+    chmod -R g=u /var/log/nginx && \
+    chgrp -R 0 /etc/nginx/conf.d && \
+    chmod -R g=u /etc/nginx/conf.d && \
+    chgrp -R 0 /etc/nginx/templates && \
+    chmod -R g=u /etc/nginx/templates && \
+    chgrp -R 0 /docker-entrypoint.d && \
+    chmod -R g=u /docker-entrypoint.d && \
+    chgrp -R 0 /var/run && \
+    chmod -R g=u /var/run && \
+    chmod +x /openshift-entrypoint.sh
+
+# Non-root runtime user (OpenShift may inject arbitrary UID)
+USER 1001
+
+ENTRYPOINT ["/openshift-entrypoint.sh"]
+
+ENV NGINX_PORT=8080
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl --fail http://localhost:${NGINX_PORT} || exit 1
+
+LABEL maintainer="OpenShift Deployment" \
+      description="NeoDash for OpenShift with ConfigMap-based configuration (UBI9 nginx runtime)"

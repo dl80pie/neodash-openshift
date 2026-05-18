@@ -9,7 +9,7 @@ set -euo pipefail
 IMAGE_NAME="${IMAGE_NAME:-neodash-openshift}"
 IMAGE_TAG="${IMAGE_TAG:-$(git -C "$(dirname "$0")/../../" describe --tags --always 2>/dev/null || date +%Y%m%d)}"
 PLATFORM="linux/amd64"
-DOCKERFILE="Dockerfile"
+DOCKERFILE="${DOCKERFILE:-Dockerfile.ubi9}"
 CONTEXT_DIR="$(dirname "$0")/.." # Points to openshift-build directory
 PROJECT_ROOT="$(dirname "$0")/../../" # Points to project root
 
