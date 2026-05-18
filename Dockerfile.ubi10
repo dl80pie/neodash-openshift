@@ -1,5 +1,5 @@
 # Stage 1: Prepare OpenShift-specific files
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5 AS prepare
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest AS prepare
 
 RUN mkdir -p /tmp/config /tmp/scripts && \
     echo "{}" > /tmp/config/config.json && \
@@ -11,8 +11,8 @@ RUN chmod +x /tmp/scripts/openshift-entrypoint.sh
 # Stage 2: Pull NeoDash static assets from the official image
 FROM neo4jlabs/neodash:latest AS neodash-assets
 
-# Stage 3: Final UBI9-based runtime image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
+# Stage 3: Final UBI10-based runtime image
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
 
 USER root
 
@@ -61,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl --fail http://localhost:${NGINX_PORT} || exit 1
 
 LABEL maintainer="OpenShift Deployment" \
-      description="NeoDash for OpenShift with ConfigMap-based configuration (UBI9 nginx runtime)"
+      description="NeoDash for OpenShift with ConfigMap-based configuration (UBI10 nginx runtime)"

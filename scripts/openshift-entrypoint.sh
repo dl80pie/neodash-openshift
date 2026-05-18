@@ -35,13 +35,18 @@ echo "Skipping config-entrypoint.sh and message-entrypoint.sh as configuration i
 # Start nginx with a modified configuration for OpenShift
 echo "Starting nginx..."
 
+NGINX_PORT="${NGINX_PORT:-8080}"
+
 # Create directories for nginx in /tmp which should be writable
-mkdir -p /tmp/nginx/conf
+mkdir -p /tmp/nginx/conf /tmp/nginx/conf/default.d
 
 # Copy all necessary nginx configuration files to writable location
 cp /etc/nginx/nginx.conf /tmp/nginx/conf/
 cp /etc/nginx/mime.types /tmp/nginx/conf/
 cp -r /etc/nginx/conf.d /tmp/nginx/conf/
+if [ -d /etc/nginx/default.d ]; then
+    cp -r /etc/nginx/default.d /tmp/nginx/conf/
+fi
 
 # Modify the copied nginx.conf to use a writable PID file location
 sed -i 's|pid        /var/run/nginx.pid;|pid        /tmp/nginx/nginx.pid;|g' /tmp/nginx/conf/nginx.conf
@@ -49,6 +54,16 @@ sed -i 's|pid        /var/run/nginx.pid;|pid        /tmp/nginx/nginx.pid;|g' /tm
 # Update paths in the configuration files to point to the correct locations
 sed -i 's|/etc/nginx/mime.types|/tmp/nginx/conf/mime.types|g' /tmp/nginx/conf/nginx.conf
 sed -i 's|/etc/nginx/conf.d/|/tmp/nginx/conf/conf.d/|g' /tmp/nginx/conf/nginx.conf
+sed -i 's|/etc/nginx/default.d/|/tmp/nginx/conf/default.d/|g' /tmp/nginx/conf/nginx.conf
+
+# Running as non-root in OpenShift: remove user directive and enforce unprivileged listen port
+sed -i '/^user\s\+/d' /tmp/nginx/conf/nginx.conf
+
+for f in /tmp/nginx/conf/nginx.conf /tmp/nginx/conf/conf.d/*.conf /tmp/nginx/conf/default.d/*.conf; do
+    [ -f "$f" ] || continue
+    sed -i "s|listen[[:space:]]\+80;|listen ${NGINX_PORT};|g" "$f"
+    sed -i "s|listen[[:space:]]\+\[::\]:80;|listen [::]:${NGINX_PORT};|g" "$f"
+done
 
 # Run nginx with the modified configuration
 exec nginx -c /tmp/nginx/conf/nginx.conf -g "daemon off;"
